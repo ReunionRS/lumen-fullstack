@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/api_config.dart';
 import '../models/session_models.dart';
+import 'local_push_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -31,12 +32,20 @@ class PushService {
       return;
     }
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await LocalPushService.instance.init();
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
       provisional: false,
     );
+    FirebaseMessaging.onMessage.listen((message) async {
+      final notification = message.notification;
+      final title = notification?.title ?? '';
+      final body = notification?.body ?? '';
+      if (title.isEmpty && body.isEmpty) return;
+      await LocalPushService.instance.show(title: title, body: body);
+    });
     _initialized = true;
   }
 

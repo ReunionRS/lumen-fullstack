@@ -1404,6 +1404,41 @@ app.delete('/api/push/unregister', authRequired, async (req, res) => {
   }
 });
 
+app.get('/api/push/status', authRequired, roleRequired('admin', 'director'), async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT platform, COUNT(*)::int AS count
+     FROM user_push_tokens
+     GROUP BY platform
+     ORDER BY platform`
+  );
+  res.json({
+    fcmConfigured: hasFcmConfig,
+    apnsConfigured: hasApnsConfig,
+    tokens: rows.map((row) => ({
+      platform: row.platform || 'unknown',
+      count: Number(row.count || 0),
+    })),
+  });
+});
+
+app.post('/api/push/test', authRequired, async (req, res) => {
+  try {
+    const title = String(req.body?.title || 'Lumen Group').trim();
+    const body = String(req.body?.body || 'Push уведомления подключены').trim();
+    await sendPushToUsers({
+      userIds: [req.user.id],
+      title,
+      body,
+      data: { type: 'push_test' },
+    });
+    res.json({ ok: true, fcmConfigured: hasFcmConfig, apnsConfigured: hasApnsConfig });
+  } catch (error) {
+    res.status(500).json({
+      error: error?.message || 'Не удалось отправить тестовое push уведомление',
+    });
+  }
+});
+
 app.get('/api/users', authRequired, async (req, res) => {
   const { rows } = await pool.query(
     'SELECT id, email, fio, role, is_active, is_archived, avatar_url FROM users ORDER BY created_at DESC'
