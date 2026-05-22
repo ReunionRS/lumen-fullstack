@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/formatters.dart';
@@ -21,9 +23,13 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
+  static const _refreshInterval = Duration(seconds: 4);
+
   bool _loading = true;
+  bool _refreshing = false;
   String? _error;
   List<_SupportDialog> _dialogs = const [];
+  Timer? _refreshTimer;
 
   bool get _isClient => widget.role == 'client';
 
@@ -31,22 +37,39 @@ class _SupportPageState extends State<SupportPage> {
   void initState() {
     super.initState();
     if (_isClient) return;
-    _loadDialogs();
+    _loadDialogs(showLoader: true);
+    _refreshTimer = Timer.periodic(
+      _refreshInterval,
+      (_) => _loadDialogs(showLoader: false),
+    );
   }
 
-  Future<void> _loadDialogs() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadDialogs({required bool showLoader}) async {
+    if (_refreshing) return;
+    _refreshing = true;
+    if (showLoader) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final messages = await widget.auth.fetchSupportMessages();
       if (!mounted) return;
       setState(() => _dialogs = _buildDialogs(messages));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (showLoader) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
+      _refreshing = false;
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -112,8 +135,8 @@ class _SupportPageState extends State<SupportPage> {
                       itemBuilder: (context, index) {
                         final dialog = _dialogs[index];
                         return InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
+                          onTap: () async {
+                            await Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => SupportThreadPage(
                                   auth: widget.auth,
@@ -123,6 +146,9 @@ class _SupportPageState extends State<SupportPage> {
                                 ),
                               ),
                             );
+                            if (mounted) {
+                              _loadDialogs(showLoader: false);
+                            }
                           },
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
@@ -212,41 +238,89 @@ class SupportThreadPage extends StatefulWidget {
 }
 
 class _SupportThreadPageState extends State<SupportThreadPage> {
+  static const _refreshInterval = Duration(seconds: 3);
+
   final _messageController = TextEditingController();
+  final _scrollController = ScrollController();
   List<SupportMessage> _messages = const [];
   bool _loading = true;
+  bool _refreshing = false;
   String? _error;
+  Timer? _refreshTimer;
 
   bool get _isClient => widget.role == 'client';
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _loadMessages(showLoader: true);
+    _refreshTimer = Timer.periodic(
+      _refreshInterval,
+      (_) => _loadMessages(showLoader: false),
+    );
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadMessages() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadMessages({required bool showLoader}) async {
+    if (_refreshing) return;
+    _refreshing = true;
+    if (showLoader) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final items = await widget.auth
           .fetchSupportMessages(clientUserId: widget.clientUserId);
       if (!mounted) return;
-      setState(() => _messages = items);
+      final hadNewMessages = !_sameMessages(_messages, items);
+      if (hadNewMessages) {
+        setState(() => _messages = items);
+        _scrollToBottom();
+      }
+      if (!_isClient && widget.clientUserId != null && widget.clientUserId!.isNotEmpty) {
+        await widget.auth.markSupportChatRead(widget.clientUserId!);
+      }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      if (showLoader) {
+        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
+      _refreshing = false;
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  bool _sameMessages(List<SupportMessage> a, List<SupportMessage> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i += 1) {
+      if (a[i].id != b[i].id ||
+          a[i].messageText != b[i].messageText ||
+          a[i].isReadByAdmin != b[i].isReadByAdmin) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -268,6 +342,7 @@ class _SupportThreadPageState extends State<SupportThreadPage> {
         _messages = [..._messages, message];
         _messageController.clear();
       });
+      _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -297,6 +372,7 @@ class _SupportThreadPageState extends State<SupportThreadPage> {
                         ),
                       )
                     : ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         itemCount: _messages.length,
                         itemBuilder: (context, index) {
