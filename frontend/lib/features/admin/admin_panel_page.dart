@@ -29,10 +29,12 @@ class AdminPanelPage extends StatelessWidget {
         children: [
           _AdminTile(
             icon: Icons.group_outlined,
-            title: I18n.t('Управление пользователями', 'Пользовательёс управлять', 'User management'),
+            title: I18n.t('Управление пользователями',
+                'Пользовательёс управлять', 'User management'),
             onTap: () => _openSection(
               context,
-              title: I18n.t('Управление пользователями', 'Пользовательёс управлять', 'User management'),
+              title: I18n.t('Управление пользователями',
+                  'Пользовательёс управлять', 'User management'),
               child: UsersManagementTab(auth: auth),
             ),
           ),
@@ -59,10 +61,12 @@ class AdminPanelPage extends StatelessWidget {
           const SizedBox(height: 12),
           _AdminTile(
             icon: Icons.calendar_month_outlined,
-            title: I18n.t('Плановое обслуживание', 'Планлы обслуживание', 'Scheduled maintenance'),
+            title: I18n.t('Плановое обслуживание', 'Планлы обслуживание',
+                'Scheduled maintenance'),
             onTap: () => _openSection(
               context,
-              title: I18n.t('Плановое обслуживание', 'Планлы обслуживание', 'Scheduled maintenance'),
+              title: I18n.t('Плановое обслуживание', 'Планлы обслуживание',
+                  'Scheduled maintenance'),
               child: MaintenancePage(
                 auth: auth,
                 role: 'admin',
@@ -88,7 +92,8 @@ class AdminPanelPage extends StatelessWidget {
             title: I18n.t('Журнал дома', 'Коркалэн журналэз', 'House journal'),
             onTap: () => _openSection(
               context,
-              title: I18n.t('Журнал дома', 'Коркалэн журналэз', 'House journal'),
+              title:
+                  I18n.t('Журнал дома', 'Коркалэн журналэз', 'House journal'),
               child: JournalPage(
                 auth: auth,
                 role: 'admin',
@@ -127,8 +132,8 @@ class AdminPanelPage extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => _AdminSectionPage(
           title: title,
-          child: child,
           hideAppBar: hideAppBar,
+          child: child,
         ),
       ),
     );
@@ -218,6 +223,7 @@ class UsersManagementTab extends StatefulWidget {
 }
 
 class _UsersManagementTabState extends State<UsersManagementTab> {
+  final _userSearchController = TextEditingController();
   bool _loading = true;
   String? _error;
   List<AppUser> _users = const [];
@@ -226,6 +232,22 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _userSearchController.dispose();
+    super.dispose();
+  }
+
+  List<AppUser> get _filteredUsers {
+    final query = _userSearchController.text.trim().toLowerCase();
+    if (query.isEmpty) return _users;
+    return _users.where((user) {
+      return user.fio.toLowerCase().contains(query) ||
+          user.email.toLowerCase().contains(query) ||
+          (kRoleLabels[user.role] ?? user.role).toLowerCase().contains(query);
+    }).toList(growable: false);
   }
 
   Future<void> _load() async {
@@ -250,7 +272,8 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Удалить пользователя?'),
-            content: Text('Удалить ${user.fio.isEmpty ? user.email : user.fio}?'),
+            content:
+                Text('Удалить ${user.fio.isEmpty ? user.email : user.fio}?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
@@ -277,6 +300,162 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
     }
   }
 
+  Future<void> _createUser() async {
+    final fioController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    String role = 'client';
+    var sendWelcomeEmail = true;
+    var saving = false;
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final viewInsets = MediaQuery.of(context).viewInsets;
+            return Padding(
+              padding: EdgeInsets.only(bottom: viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                decoration: BoxDecoration(
+                  color: UiTokens.card(context),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Добавить пользователя',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: fioController,
+                          decoration: const InputDecoration(labelText: 'ФИО'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: emailController,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: role,
+                          items: kRoleLabels.entries
+                              .map(
+                                (entry) => DropdownMenuItem(
+                                  value: entry.key,
+                                  child: Text(entry.value),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setModalState(() => role = value);
+                          },
+                          decoration: const InputDecoration(labelText: 'Роль'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: passwordController,
+                          obscureText: true,
+                          decoration:
+                              const InputDecoration(labelText: 'Пароль'),
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: sendWelcomeEmail,
+                          onChanged: (value) => setModalState(
+                              () => sendWelcomeEmail = value ?? true),
+                          title: const Text('Отправить письмо с доступом'),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  final fio = fioController.text.trim();
+                                  final email = emailController.text.trim();
+                                  final password = passwordController.text;
+                                  if (fio.isEmpty ||
+                                      email.isEmpty ||
+                                      password.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Заполните ФИО, email и пароль'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  var sheetClosed = false;
+                                  setModalState(() => saving = true);
+                                  try {
+                                    await widget.auth.createUser(
+                                      fio: fio,
+                                      email: email,
+                                      password: password,
+                                      role: role,
+                                      sendWelcomeEmail: sendWelcomeEmail,
+                                    );
+                                    if (!context.mounted) return;
+                                    sheetClosed = true;
+                                    Navigator.of(context).pop(true);
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(e
+                                            .toString()
+                                            .replaceFirst('Exception: ', '')),
+                                      ),
+                                    );
+                                  } finally {
+                                    if (!sheetClosed && context.mounted) {
+                                      setModalState(() => saving = false);
+                                    }
+                                  }
+                                },
+                          child: saving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Добавить'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    fioController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+
+    if (result == true) {
+      await _load();
+    }
+  }
+
   Future<void> _editUser(AppUser user) async {
     final fioController = TextEditingController(text: user.fio);
     final emailController = TextEditingController(text: user.email);
@@ -297,93 +476,99 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
+                  color: UiTokens.card(context),
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Редактировать пользователя',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: fioController,
-                      decoration: const InputDecoration(labelText: 'ФИО'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: role,
-                      items: kRoleLabels.entries
-                          .map(
-                            (entry) => DropdownMenuItem(
-                              value: entry.key,
-                              child: Text(entry.value),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setModalState(() => role = value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Роль'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: passwordController,
-                      decoration:
-                          const InputDecoration(labelText: 'Новый пароль'),
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: saving
-                          ? null
-                          : () async {
-                              var sheetClosed = false;
-                              setModalState(() => saving = true);
-                              try {
-                                await widget.auth.updateUser(
-                                  userId: user.id,
-                                  fio: fioController.text.trim(),
-                                  email: emailController.text.trim(),
-                                  role: role,
-                                  password: passwordController.text,
-                                );
-                                if (!context.mounted) return;
-                                sheetClosed = true;
-                                Navigator.of(context).pop(true);
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Редактировать пользователя',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: fioController,
+                        decoration: const InputDecoration(labelText: 'ФИО'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: role,
+                        items: kRoleLabels.entries
+                            .map(
+                              (entry) => DropdownMenuItem(
+                                value: entry.key,
+                                child: Text(entry.value),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setModalState(() => role = value);
+                        },
+                        decoration: const InputDecoration(labelText: 'Роль'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: passwordController,
+                        decoration:
+                            const InputDecoration(labelText: 'Новый пароль'),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                var sheetClosed = false;
+                                setModalState(() => saving = true);
+                                try {
+                                  await widget.auth.updateUser(
+                                    userId: user.id,
+                                    fio: fioController.text.trim(),
+                                    email: emailController.text.trim(),
+                                    role: role,
+                                    password: passwordController.text,
+                                  );
+                                  if (!context.mounted) return;
+                                  sheetClosed = true;
+                                  Navigator.of(context).pop(true);
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
                                       content: Text(e
                                           .toString()
-                                          .replaceFirst('Exception: ', ''))),
-                                );
-                              } finally {
-                                if (!sheetClosed && context.mounted) {
-                                  setModalState(() => saving = false);
+                                          .replaceFirst('Exception: ', '')),
+                                    ),
+                                  );
+                                } finally {
+                                  if (!sheetClosed && context.mounted) {
+                                    setModalState(() => saving = false);
+                                  }
                                 }
-                              }
-                            },
-                      child: saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Сохранить'),
-                    ),
-                  ],
+                              },
+                        child: saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Сохранить'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -401,8 +586,137 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
     }
   }
 
+  Future<void> _toggleUserStatus(AppUser user, bool isActive) async {
+    try {
+      await widget.auth.updateUserState(
+        user.id,
+        isActive: isActive,
+        isArchived: false,
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _openUserActions(AppUser user) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final active = user.isActive && !user.isArchived;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          decoration: BoxDecoration(
+            color: UiTokens.card(ctx),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    _UserAvatar(user: user, auth: widget.auth, radius: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.fio.isEmpty ? user.email : user.fio,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: UiTokens.foreground(ctx),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: UiTokens.muted(ctx)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: active,
+                  title: const Text('Аккаунт активен'),
+                  subtitle: Text(active ? 'Активен' : 'Неактивен'),
+                  activeColor: UiTokens.success,
+                  onChanged: (value) async {
+                    Navigator.of(ctx).pop(value ? 'activate' : 'deactivate');
+                  },
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: UiTokens.accent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.of(ctx).pop('edit');
+                        },
+                        child: const Text('Редактировать'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.of(ctx).pop('delete');
+                        },
+                        child: const Text('Удалить'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'activate':
+        await _toggleUserStatus(user, true);
+        break;
+      case 'deactivate':
+        await _toggleUserStatus(user, false);
+        break;
+      case 'edit':
+        await _editUser(user);
+        break;
+      case 'delete':
+        await _deleteUser(user);
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final users = _filteredUsers;
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -416,78 +730,161 @@ class _UsersManagementTabState extends State<UsersManagementTab> {
     }
     if (_users.isEmpty) {
       return Center(
-        child: Text('Пользователей пока нет',
-            style: TextStyle(color: UiTokens.muted(context))),
+        child: Text(
+          'Пользователей пока нет',
+          style: TextStyle(color: UiTokens.muted(context)),
+        ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        itemCount: _users.length,
-        itemBuilder: (context, index) {
-          final user = _users[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: UiTokens.card(context),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: UiTokens.cardShadow(context),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: UiTokens.surface(context),
-                  child: Icon(Icons.person_outline,
-                      color: UiTokens.muted(context)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.fio.isEmpty ? user.email : user.fio,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: UiTokens.foreground(context),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.email,
-                        style: TextStyle(color: UiTokens.muted(context)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        kRoleLabels[user.role] ?? user.role,
-                        style: const TextStyle(
-                          color: Color(0xFFED9B00),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+            children: [
+              TextField(
+                controller: _userSearchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'Поиск пользователей',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: UiTokens.card(context),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: UiTokens.border(context)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: UiTokens.accent),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _editUser(user),
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Редактировать',
-                ),
-                IconButton(
-                  onPressed: () => _deleteUser(user),
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Удалить',
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+              const SizedBox(height: 14),
+              if (users.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 48),
+                  child: Center(
+                    child: Text(
+                      'Пользователи не найдены',
+                      style: TextStyle(color: UiTokens.muted(context)),
+                    ),
+                  ),
+                )
+              else
+                ...users.map((user) {
+                  final active = user.isActive && !user.isArchived;
+                  return InkWell(
+                    onTap: () => _openUserActions(user),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: UiTokens.card(context),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: UiTokens.cardShadow(context),
+                      ),
+                      child: Row(
+                        children: [
+                          _UserAvatar(user: user, auth: widget.auth),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.fio.isEmpty ? user.email : user.fio,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: UiTokens.foreground(context),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  user.email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      TextStyle(color: UiTokens.muted(context)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  kRoleLabels[user.role] ?? user.role,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFED9B00),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            active ? 'Активен' : 'Неактивен',
+                            style: TextStyle(
+                              color:
+                                  active ? UiTokens.success : Colors.redAccent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              color: UiTokens.muted(context)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: FloatingActionButton(
+            onPressed: _createUser,
+            backgroundColor: UiTokens.accent,
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar({
+    required this.user,
+    required this.auth,
+    this.radius = 22,
+  });
+
+  final AppUser user;
+  final AuthService auth;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl =
+        user.avatarUrl.isEmpty ? '' : auth.resolveFileUrl(user.avatarUrl);
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: UiTokens.surface(context),
+      backgroundImage: avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
+      child: avatarUrl.isEmpty
+          ? Icon(Icons.person_outline, color: UiTokens.muted(context))
+          : null,
     );
   }
 }
@@ -502,14 +899,45 @@ class ProjectsManagementTab extends StatefulWidget {
 }
 
 class _ProjectsManagementTabState extends State<ProjectsManagementTab> {
+  final _searchController = TextEditingController();
   bool _loading = true;
   String? _error;
   List<ProjectSummary> _projects = const [];
+  String _filter = 'all';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _isConstructionProject(ProjectSummary project) {
+    final status = project.status.toLowerCase();
+    return status.contains('construction') ||
+        status.contains('draft') ||
+        status.contains('in_progress') ||
+        project.progress < 100;
+  }
+
+  List<ProjectSummary> get _filteredProjects {
+    final query = _searchController.text.trim().toLowerCase();
+    return _projects.where((project) {
+      if (_filter == 'construction' && !_isConstructionProject(project)) {
+        return false;
+      }
+      if (_filter == 'operation' && _isConstructionProject(project)) {
+        return false;
+      }
+      if (query.isEmpty) return true;
+      return project.constructionAddress.toLowerCase().contains(query) ||
+          project.clientFio.toLowerCase().contains(query);
+    }).toList(growable: false);
   }
 
   Future<void> _load() async {
@@ -564,85 +992,313 @@ class _ProjectsManagementTabState extends State<ProjectsManagementTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Text(
-          _error!,
-          style: const TextStyle(color: Colors.red),
-        ),
-      );
-    }
-    if (_projects.isEmpty) {
-      return Center(
-        child: Text('Объектов пока нет',
-            style: TextStyle(color: UiTokens.muted(context))),
-      );
-    }
+    final constructionCount = _projects.where(_isConstructionProject).length;
+    final operationCount = _projects.length - constructionCount;
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        itemCount: _projects.length,
-        itemBuilder: (context, index) {
-          final project = _projects[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: UiTokens.card(context),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: UiTokens.cardShadow(context),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: UiTokens.surface(context),
-                  child: Icon(Icons.home_outlined,
-                      color: UiTokens.muted(context)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        project.constructionAddress,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: UiTokens.foreground(context),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        project.clientFio,
-                        style: TextStyle(color: UiTokens.muted(context)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        kProjectStatusLabels[project.status] ?? project.status,
-                        style: const TextStyle(
-                          color: Color(0xFFED9B00),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  style: TextStyle(color: UiTokens.foreground(context)),
+                  decoration: InputDecoration(
+                    hintText: 'Поиск объектов',
+                    hintStyle: TextStyle(color: UiTokens.muted(context)),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: UiTokens.muted(context),
+                    ),
+                    filled: true,
+                    fillColor: UiTokens.card(context),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: UiTokens.border(context)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: UiTokens.accent),
+                    ),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _deleteProject(project),
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Удалить',
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 44,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: UiTokens.card(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: UiTokens.border(context)),
+                ),
+                child: Icon(
+                  Icons.filter_alt_outlined,
+                  color: UiTokens.foreground(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _ProjectFilterChip(
+                  label: 'Все',
+                  count: _projects.length,
+                  selected: _filter == 'all',
+                  onTap: () => setState(() => _filter = 'all'),
+                ),
+                _ProjectFilterChip(
+                  label: 'Строительство',
+                  count: constructionCount,
+                  selected: _filter == 'construction',
+                  onTap: () => setState(() => _filter = 'construction'),
+                ),
+                _ProjectFilterChip(
+                  label: 'Эксплуатация',
+                  count: operationCount,
+                  selected: _filter == 'operation',
+                  onTap: () => setState(() => _filter = 'operation'),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 18),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 80),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 80),
+              child: Center(
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            )
+          else if (_filteredProjects.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 80),
+              child: Center(
+                child: Text(
+                  'Объекты не найдены',
+                  style: TextStyle(color: UiTokens.muted(context)),
+                ),
+              ),
+            )
+          else
+            ..._filteredProjects.map(
+              (project) => _ProjectDesignCard(
+                project: project,
+                auth: widget.auth,
+                isConstruction: _isConstructionProject(project),
+                onLongPress: () => _deleteProject(project),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectFilterChip extends StatelessWidget {
+  const _ProjectFilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? UiTokens.accent : UiTokens.border(context),
+            ),
+          ),
+          child: Text(
+            '$label  $count',
+            style: TextStyle(
+              color: selected ? UiTokens.accent : UiTokens.foreground(context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectDesignCard extends StatelessWidget {
+  const _ProjectDesignCard({
+    required this.project,
+    required this.auth,
+    required this.isConstruction,
+    required this.onLongPress,
+  });
+
+  final ProjectSummary project;
+  final AuthService auth;
+  final bool isConstruction;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusText = _statusText(project);
+    final statusColor = _statusColor(project);
+    final thumbnailUrl = project.thumbnailUrl.isEmpty
+        ? ''
+        : auth.resolveFileUrl(project.thumbnailUrl);
+
+    return InkWell(
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: UiTokens.card(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: UiTokens.border(context)),
+          boxShadow: UiTokens.cardShadow(context),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 88,
+                height: 88,
+                child: thumbnailUrl.isEmpty
+                    ? const _ProjectImageFallback()
+                    : Image.network(
+                        thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const _ProjectImageFallback(),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: SizedBox(
+                height: 86,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      project.constructionAddress.isEmpty
+                          ? 'Объект'
+                          : project.constructionAddress,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: UiTokens.foreground(context),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isConstruction ? 'Строительство' : 'Эксплуатация',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: UiTokens.muted(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      project.clientFio.isEmpty ? 'этажей' : project.clientFio,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: UiTokens.muted(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 116,
+              child: Text(
+                statusText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _statusText(ProjectSummary project) {
+    if (project.progress >= 100 || project.status == 'completed') {
+      return 'Завершен';
+    }
+    if (project.progress <= 0 || project.status == 'draft') {
+      return 'Ожидает старта';
+    }
+    return 'В работе';
+  }
+
+  Color _statusColor(ProjectSummary project) {
+    if (project.progress <= 0 || project.status == 'draft') {
+      return const Color(0xFFFFB800);
+    }
+    return const Color(0xFF2BFF73);
+  }
+}
+
+class _ProjectImageFallback extends StatelessWidget {
+  const _ProjectImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: UiTokens.surface(context),
+      child: Icon(
+        Icons.apartment,
+        color: UiTokens.muted(context),
+        size: 34,
       ),
     );
   }
@@ -683,7 +1339,8 @@ class _DocumentsManagementTabState extends State<DocumentsManagementTab> {
       setState(() => _clients = clients);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _clientError = e.toString().replaceFirst('Exception: ', ''));
+      setState(
+          () => _clientError = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loadingClients = false);
     }
@@ -716,10 +1373,9 @@ class _DocumentsManagementTabState extends State<DocumentsManagementTab> {
 
   Future<void> _openDoc(ProjectDocument doc) async {
     try {
-      final url = await widget.auth.documentViewUrl(
-        doc.id,
-        inline: !doc.isDocx,
-      );
+      final url = doc.isDocx
+          ? await widget.auth.documentPreviewHtmlUrl(doc.id)
+          : await widget.auth.documentViewUrl(doc.id, inline: true);
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(

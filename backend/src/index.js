@@ -12,6 +12,7 @@ import http2 from 'http2';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import { authenticator } from 'otplib';
+import mammoth from 'mammoth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,7 @@ const {
   APNS_BUNDLE_ID = '',
   APNS_PRIVATE_KEY = '',
   APNS_USE_SANDBOX = 'false',
+  HA_WEB_APP_URL = '',
   HA_WEB_REDIRECT_URIS = '',
   DEV_ALLOW_ALL_CORS = '',
 } = process.env;
@@ -158,6 +160,27 @@ app.get('/ha-oauth-client', (_req, res) => {
 </html>`);
 });
 
+app.get('/ha-oauth-web-callback', (req, res) => {
+  const host = String(req.headers.host || '').trim();
+  const hostIp = host.includes(':') ? host.split(':')[0] : host;
+  const fallbackWebAppUrl = hostIp
+    ? `http://${hostIp}:5173`
+    : 'http://localhost:5173';
+  const targetBase = String(HA_WEB_APP_URL || fallbackWebAppUrl).replace(/\/$/, '');
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(req.query)) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(key, String(item)));
+    } else if (value != null) {
+      query.set(key, String(value));
+    }
+  }
+
+  const queryString = query.toString();
+  res.redirect(302, `${targetBase}/ha-oauth-web-callback${queryString ? `?${queryString}` : ''}`);
+});
+
 [UPLOADS_DIR, DOCS_DIR, STAGE_PHOTOS_DIR, AVATARS_DIR, PROJECT_THUMBNAILS_DIR, JOURNAL_PHOTOS_DIR].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
@@ -217,6 +240,14 @@ const filenameForContentDisposition = (value) => {
     .trim();
   return asciiFallback || 'file';
 };
+
+const escapeHtml = (value) =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const toProject = (row) => ({
   id: row.id,
@@ -1563,9 +1594,6 @@ app.patch('/api/users/:id/state', authRequired, roleRequired('admin', 'director'
     return res.status(404).json({ error: 'Пользователь не найден' });
   }
   const current = existing.rows[0];
-  if (current.role === 'client') {
-    return res.status(400).json({ error: 'Для клиентов используйте управление пользователями' });
-  }
 
   const isArchived = typeof isArchivedRaw === 'boolean' ? isArchivedRaw : current.is_archived;
   const isActive = isArchived ? false : (typeof isActiveRaw === 'boolean' ? isActiveRaw : current.is_active);
@@ -2449,6 +2477,63 @@ app.post('/api/documents', authRequired, uploadDocument.single('file'), async (r
     uploadedAt: doc.uploaded_at,
     uploadedBy: doc.uploaded_by,
   });
+});
+
+app.get('/api/documents/:id/preview-html', async (req, res) => {
+  const user = await getUserFromRequest(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { rows } = await pool.query(
+    `SELECT d.*, p.client_user_id AS project_client_user_id
+     FROM documents d
+     LEFT JOIN projects p ON p.id = d.project_id
+     WHERE d.id = $1 LIMIT 1`,
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Документ не найден' });
+
+  const rec = rows[0];
+  const ownerClientId = rec.client_user_id || rec.project_client_user_id;
+  if (user.role === 'client' && ownerClientId !== user.id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const absolutePath = path.join(ROOT_DIR, rec.storage_path.replace(/^\//, ''));
+  if (!fs.existsSync(absolutePath)) return res.status(404).json({ error: 'Файл не найден' });
+
+  const lowerName = String(rec.name || '').toLowerCase();
+  const lowerMime = String(rec.mime_type || '').toLowerCase();
+  const isDocx =
+    lowerName.endsWith('.docx') ||
+    lowerMime.includes('officedocument.wordprocessingml.document');
+  if (!isDocx) return res.status(415).json({ error: 'Предпросмотр доступен только для DOCX' });
+
+  try {
+    const result = await mammoth.convertToHtml({ path: absolutePath });
+    const title = escapeHtml(normalizeFilename(rec.name) || 'Документ');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title}</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #f7f7f8; color: #1f2933; }
+      body { font-family: Arial, sans-serif; line-height: 1.55; }
+      main { max-width: 900px; margin: 0 auto; padding: 28px 22px 48px; background: #fff; min-height: 100vh; box-sizing: border-box; }
+      img { max-width: 100%; height: auto; }
+      table { border-collapse: collapse; width: 100%; }
+      td, th { border: 1px solid #d7dce1; padding: 6px 8px; }
+      p { margin: 0 0 12px; }
+    </style>
+  </head>
+  <body><main>${result.value}</main></body>
+</html>`);
+  } catch (err) {
+    console.error('DOCX preview failed', err);
+    res.status(500).json({ error: 'Не удалось открыть предпросмотр Word' });
+  }
 });
 
 app.get('/api/documents/:id/download', async (req, res) => {

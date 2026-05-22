@@ -24,9 +24,6 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   late final String _viewType;
 
   String get _previewUrl {
-    if (widget.isDocx) {
-      return 'https://view.officeapps.live.com/op/embed.aspx?src=${Uri.encodeComponent(widget.fileUrl)}';
-    }
     return widget.fileUrl;
   }
 
@@ -60,25 +57,19 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         ],
       ),
       body: kIsWeb
-          ? (widget.isDocx
-              ? Center(
-                  child: FilledButton.icon(
-                    onPressed: _openExternal,
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Открыть предпросмотр Word'),
-                  ),
-                )
-              : buildDocumentPreviewFrame(
-                  viewType: _viewType,
-                  url: _previewUrl,
-                ))
+          ? buildDocumentPreviewFrame(
+              viewType: _viewType,
+              url: _previewUrl,
+            )
           : Center(
               child: FilledButton.icon(
                 onPressed: _openExternal,
                 icon: const Icon(Icons.open_in_new),
-                label: Text(widget.isDocx
-                    ? 'Открыть предпросмотр Word'
-                    : 'Открыть документ'),
+                label: Text(
+                  widget.isDocx
+                      ? 'Открыть предпросмотр Word'
+                      : 'Открыть документ',
+                ),
               ),
             ),
     );

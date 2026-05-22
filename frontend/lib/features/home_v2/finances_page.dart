@@ -1060,14 +1060,35 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.35,
-      children: items,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 900;
+        final crossAxisCount = isDesktop ? 4 : 2;
+        final gridWidth = isDesktop
+            ? constraints.maxWidth.clamp(0.0, 820.0)
+            : constraints.maxWidth;
+        final cardWidth =
+            (gridWidth - (crossAxisCount - 1) * 12) / crossAxisCount;
+        final cardHeight = isDesktop ? 96.0 : cardWidth / 1.35;
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: gridWidth,
+            height: cardHeight * (isDesktop ? 1 : 2) +
+                (isDesktop ? 0 : 12),
+            child: GridView.count(
+              crossAxisCount: crossAxisCount,
+              shrinkWrap: true,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: cardWidth / cardHeight,
+              children: items,
+            ),
+          ),
+        );
+      },
     );
   }
 }

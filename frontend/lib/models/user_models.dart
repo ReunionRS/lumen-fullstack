@@ -4,6 +4,7 @@ class AppUser {
     required this.fio,
     required this.email,
     required this.role,
+    this.avatarUrl = '',
     this.isActive = true,
     this.isArchived = false,
   });
@@ -12,6 +13,7 @@ class AppUser {
   final String fio;
   final String email;
   final String role;
+  final String avatarUrl;
   final bool isActive;
   final bool isArchived;
 
@@ -21,6 +23,7 @@ class AppUser {
       fio: (json['fio'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
       role: (json['role'] ?? 'client').toString(),
+      avatarUrl: (json['avatarUrl'] ?? '').toString(),
       isActive: json['isActive'] == false ? false : true,
       isArchived: json['isArchived'] == true,
     );

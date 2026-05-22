@@ -999,6 +999,14 @@ class AuthService {
     return ApiConfig.baseUrl + '/api/documents/' + documentId + '/download';
   }
 
+  Future<String> documentPreviewHtmlUrl(String documentId) async {
+    final token = await _token();
+    final uri = Uri.parse(
+      ApiConfig.baseUrl + '/api/documents/' + documentId + '/preview-html',
+    ).replace(queryParameters: {'token': token});
+    return uri.toString();
+  }
+
   Future<String> documentViewUrl(
     String documentId, {
     bool inline = false,

@@ -57,17 +57,22 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
       case 'Проект':
         return _t('Проект', 'Проект', 'Project', tt: 'Проект', ba: 'Проект');
       case 'Чертежи':
-        return _t('Чертежи', 'Чертёжъёс', 'Drawings', tt: 'Сызымнар', ba: 'Һыҙмалар');
+        return _t('Чертежи', 'Чертёжъёс', 'Drawings',
+            tt: 'Сызымнар', ba: 'Һыҙмалар');
       case 'Договоры':
-        return _t('Договоры', 'Договоръёс', 'Contracts', tt: 'Килешүләр', ba: 'Килешеүҙәр');
+        return _t('Договоры', 'Договоръёс', 'Contracts',
+            tt: 'Килешүләр', ba: 'Килешеүҙәр');
       case 'Акты':
         return _t('Акты', 'Актъёс', 'Acts', tt: 'Актлар', ba: 'Акттар');
       case 'Сертификаты':
-        return _t('Сертификаты', 'Сертификатъёс', 'Certificates', tt: 'Сертификатлар', ba: 'Сертификаттар');
+        return _t('Сертификаты', 'Сертификатъёс', 'Certificates',
+            tt: 'Сертификатлар', ba: 'Сертификаттар');
       case 'Гарантии':
-        return _t('Гарантии', 'Гарантияос', 'Warranties', tt: 'Гарантияләр', ba: 'Гарантиялар');
+        return _t('Гарантии', 'Гарантияос', 'Warranties',
+            tt: 'Гарантияләр', ba: 'Гарантиялар');
       case 'Инструкции':
-        return _t('Инструкции', 'Инструкцияос', 'Instructions', tt: 'Инструкцияләр', ba: 'Инструкциялар');
+        return _t('Инструкции', 'Инструкцияос', 'Instructions',
+            tt: 'Инструкцияләр', ba: 'Инструкциялар');
       default:
         return key;
     }
@@ -100,7 +105,10 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
       if (!mounted) return;
       setState(() => _docs = docs);
     } on UnauthorizedException {
-      setState(() => _error = _t('Сессия истекла. Войдите снова.', 'Сессия быдэ. Вновь пыры.', 'Session expired. Sign in again.', tt: 'Сессия тәмамланды. Кабат керегез.', ba: 'Сессия тамамланды. Ҡабат инегеҙ.'));
+      setState(() => _error = _t('Сессия истекла. Войдите снова.',
+          'Сессия быдэ. Вновь пыры.', 'Session expired. Sign in again.',
+          tt: 'Сессия тәмамланды. Кабат керегез.',
+          ba: 'Сессия тамамланды. Ҡабат инегеҙ.'));
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -119,7 +127,8 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
       setState(() => _clients = clients);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _clientsError = e.toString().replaceFirst('Exception: ', ''));
+      setState(
+          () => _clientsError = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loadingClients = false);
     }
@@ -154,17 +163,22 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      _t('Загрузка документа', 'Документез грузитон', 'Upload document', tt: 'Документ йөкләү', ba: 'Документ йөкләү'),
+                      _t('Загрузка документа', 'Документез грузитон',
+                          'Upload document',
+                          tt: 'Документ йөкләү', ba: 'Документ йөкләү'),
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: selectedClientId,
+                      isExpanded: true,
                       items: [
                         DropdownMenuItem(
                           value: null,
-                          child: Text(_t('Выберите клиента', 'Клиентез бырйы', 'Select client', tt: 'Клиент сайлагыз', ba: 'Клиент һайлағыҙ')),
+                          child: Text(_t('Выберите клиента', 'Клиентез бырйы',
+                              'Select client',
+                              tt: 'Клиент сайлагыз', ba: 'Клиент һайлағыҙ')),
                         ),
                         ..._clients.map(
                           (client) => DropdownMenuItem(
@@ -173,6 +187,7 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                               client.fio.isEmpty
                                   ? client.email
                                   : '${client.fio} · ${client.email}',
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -182,7 +197,9 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                           ? null
                           : (value) =>
                               setModalState(() => selectedClientId = value),
-                      decoration: InputDecoration(labelText: _t('Клиент', 'Клиент', 'Client', tt: 'Клиент', ba: 'Клиент')),
+                      decoration: InputDecoration(
+                          labelText: _t('Клиент', 'Клиент', 'Client',
+                              tt: 'Клиент', ba: 'Клиент')),
                     ),
                     if (_loadingClients)
                       const Padding(
@@ -213,7 +230,9 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                         setModalState(() => docType = value);
                       },
                       decoration: InputDecoration(
-                        labelText: _t('Тип документа', 'Документлэн типез', 'Document type', tt: 'Документ төре', ba: 'Документ төрө'),
+                        labelText: _t('Тип документа', 'Документлэн типез',
+                            'Document type',
+                            tt: 'Документ төре', ba: 'Документ төрө'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -234,7 +253,9 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                         setModalState(() => selectedFile = result.files.first);
                       },
                       icon: const Icon(Icons.upload_file_outlined),
-                      label: Text(selectedFile?.name ?? _t('Выбрать файл', 'Файл бырйыны', 'Choose file', tt: 'Файл сайлау', ba: 'Файл һайлау')),
+                      label: Text(selectedFile?.name ??
+                          _t('Выбрать файл', 'Файл бырйыны', 'Choose file',
+                              tt: 'Файл сайлау', ba: 'Файл һайлау')),
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
@@ -245,7 +266,10 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                                   selectedClientId!.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(_t('Выберите клиента', 'Клиентез бырйы', 'Select client', tt: 'Клиент сайлагыз', ba: 'Клиент һайлағыҙ')),
+                                    content: Text(_t('Выберите клиента',
+                                        'Клиентез бырйы', 'Select client',
+                                        tt: 'Клиент сайлагыз',
+                                        ba: 'Клиент һайлағыҙ')),
                                   ),
                                 );
                                 return;
@@ -253,7 +277,10 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                               if (selectedFile == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(_t('Выберите файл', 'Файл бырйыны', 'Select file', tt: 'Файл сайлагыз', ba: 'Файл һайлағыҙ')),
+                                    content: Text(_t('Выберите файл',
+                                        'Файл бырйыны', 'Select file',
+                                        tt: 'Файл сайлагыз',
+                                        ba: 'Файл һайлағыҙ')),
                                   ),
                                 );
                                 return;
@@ -288,7 +315,8 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(_t('Загрузить', 'Грузитны', 'Upload', tt: 'Йөкләргә', ba: 'Йөкләргә')),
+                          : Text(_t('Загрузить', 'Грузитны', 'Upload',
+                              tt: 'Йөкләргә', ba: 'Йөкләргә')),
                     ),
                   ],
                 ),
@@ -322,10 +350,9 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
 
   Future<void> _openDocument(ProjectDocument doc) async {
     try {
-      final url = await widget.auth.documentViewUrl(
-        doc.id,
-        inline: !doc.isDocx,
-      );
+      final url = doc.isDocx
+          ? await widget.auth.documentPreviewHtmlUrl(doc.id)
+          : await widget.auth.documentViewUrl(doc.id, inline: true);
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
@@ -364,7 +391,8 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 88),
         children: [
           Text(
-            _t('Документы', 'Документъёс', 'Documents', tt: 'Документлар', ba: 'Документтар'),
+            _t('Документы', 'Документъёс', 'Documents',
+                tt: 'Документлар', ba: 'Документтар'),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -387,7 +415,9 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                   items: [
                     DropdownMenuItem(
                       value: null,
-                      child: Text(_t('Все клиенты', 'Вань клиентъёс', 'All clients', tt: 'Барлык клиентлар', ba: 'Бөтә клиенттар')),
+                      child: Text(_t(
+                          'Все клиенты', 'Вань клиентъёс', 'All clients',
+                          tt: 'Барлык клиентлар', ba: 'Бөтә клиенттар')),
                     ),
                     ..._clients.map(
                       (client) => DropdownMenuItem(
@@ -396,6 +426,7 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                           client.fio.isEmpty
                               ? client.email
                               : '${client.fio} · ${client.email}',
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -409,12 +440,14 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                         },
                   selectedItemBuilder: (context) {
                     final items = [
-                      Text(_t('Все клиенты', 'Вань клиентъёс', 'All clients', tt: 'Барлык клиентлар', ba: 'Бөтә клиенттар')),
+                      Text(_t('Все клиенты', 'Вань клиентъёс', 'All clients',
+                          tt: 'Барлык клиентлар', ba: 'Бөтә клиенттар')),
                       ..._clients.map(
                         (client) => Text(
                           client.fio.isEmpty
                               ? client.email
                               : '${client.fio} · ${client.email}',
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -423,16 +456,20 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                         .map(
                           (w) => Align(
                             alignment: Alignment.centerLeft,
-                            child: w,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: w,
+                            ),
                           ),
                         )
                         .toList(growable: false);
                   },
                   decoration: InputDecoration(
-                    labelText: _t('Клиент', 'Клиент', 'Client', tt: 'Клиент', ba: 'Клиент'),
+                    labelText: _t('Клиент', 'Клиент', 'Client',
+                        tt: 'Клиент', ba: 'Клиент'),
                     isDense: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                   ),
                 );
                 final uploadButton = SizedBox(
@@ -441,7 +478,8 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                   child: FilledButton.icon(
                     onPressed: _openUploadDocument,
                     icon: const Icon(Icons.upload_outlined, size: 18),
-                    label: Text(_t('Загрузить', 'Грузитны', 'Upload', tt: 'Йөкләргә', ba: 'Йөкләргә')),
+                    label: Text(_t('Загрузить', 'Грузитны', 'Upload',
+                        tt: 'Йөкләргә', ba: 'Йөкләргә')),
                   ),
                 );
 
@@ -509,7 +547,10 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
           else if (_error != null)
             Text(_error!, style: const TextStyle(color: Colors.redAccent))
           else if (docs.isEmpty)
-            Text(_t('Документы не найдены', 'Документъёс уг шедьты', 'Documents not found', tt: 'Документлар табылмады', ba: 'Документтар табылманы'),
+            Text(
+                _t('Документы не найдены', 'Документъёс уг шедьты',
+                    'Documents not found',
+                    tt: 'Документлар табылмады', ba: 'Документтар табылманы'),
                 style: TextStyle(color: UiTokens.muted(context)))
           else
             Column(
@@ -577,7 +618,8 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                           ),
                           if (!_isClient)
                             PopupMenuButton<String>(
-                              tooltip: _t('Действия', 'Действиеос', 'Actions', tt: 'Гамәлләр', ba: 'Ғәмәлдәр'),
+                              tooltip: _t('Действия', 'Действиеос', 'Actions',
+                                  tt: 'Гамәлләр', ba: 'Ғәмәлдәр'),
                               onSelected: (value) async {
                                 if (value == 'open') {
                                   await _openDocument(doc);
@@ -587,19 +629,28 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                                   final confirmed = await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
-                                          title:
-                                              Text(_t('Удалить документ?', 'Документез быдтыны?', 'Delete document?', tt: 'Документны бетерергәме?', ba: 'Документты юйырғамы?')),
+                                          title: Text(_t(
+                                              'Удалить документ?',
+                                              'Документез быдтыны?',
+                                              'Delete document?',
+                                              tt: 'Документны бетерергәме?',
+                                              ba: 'Документты юйырғамы?')),
                                           content: Text(doc.name),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(ctx).pop(false),
-                                              child: Text(_t('Отмена', 'Бертоны', 'Cancel', tt: 'Кире кагу', ba: 'Кире ҡағыу')),
+                                              child: Text(_t(
+                                                  'Отмена', 'Бертоны', 'Cancel',
+                                                  tt: 'Кире кагу',
+                                                  ba: 'Кире ҡағыу')),
                                             ),
                                             FilledButton(
                                               onPressed: () =>
                                                   Navigator.of(ctx).pop(true),
-                                              child: Text(_t('Удалить', 'Быдтыны', 'Delete', tt: 'Бетерү', ba: 'Юйырға')),
+                                              child: Text(_t('Удалить',
+                                                  'Быдтыны', 'Delete',
+                                                  tt: 'Бетерү', ba: 'Юйырға')),
                                             ),
                                           ],
                                         ),
@@ -624,11 +675,13 @@ class _DocumentsOverviewPageState extends State<DocumentsOverviewPage> {
                               itemBuilder: (ctx) => [
                                 PopupMenuItem(
                                   value: 'open',
-                                  child: Text(_t('Просмотр', 'Учкон', 'Preview', tt: 'Карау', ba: 'Ҡарау')),
+                                  child: Text(_t('Просмотр', 'Учкон', 'Preview',
+                                      tt: 'Карау', ba: 'Ҡарау')),
                                 ),
                                 PopupMenuItem(
                                   value: 'delete',
-                                  child: Text(_t('Удалить', 'Быдтыны', 'Delete', tt: 'Бетерү', ba: 'Юйырға')),
+                                  child: Text(_t('Удалить', 'Быдтыны', 'Delete',
+                                      tt: 'Бетерү', ba: 'Юйырға')),
                                 ),
                               ],
                             ),

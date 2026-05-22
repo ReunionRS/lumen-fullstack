@@ -96,6 +96,8 @@ class SystemsPage extends StatefulWidget {
 }
 
 class _SystemsPageState extends State<SystemsPage> {
+  static const bool _showDevelopmentPlaceholder = true;
+
   final List<SystemEntity> _items = [];
   final List<AppUser> _clients = [];
   final List<ProjectSummary> _projects = [];
@@ -116,6 +118,7 @@ class _SystemsPageState extends State<SystemsPage> {
   @override
   void initState() {
     super.initState();
+    if (_showDevelopmentPlaceholder) return;
     if (_isClient) {
       _selectedProjectId = widget.projectId;
       _loadStatus();
@@ -249,6 +252,32 @@ class _SystemsPageState extends State<SystemsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showDevelopmentPlaceholder) {
+      return Scaffold(
+        backgroundColor: UiTokens.background(context),
+        appBar: AppBar(
+          title: Text(I18n.t(
+            'Системы',
+            'Системы',
+            'Systems',
+            tt: 'Системалар',
+            ba: 'Системалар',
+          )),
+        ),
+        body: Center(
+          child: Text(
+            'Раздел находится в разработке',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: UiTokens.foreground(context),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: UiTokens.background(context),
       appBar: AppBar(
@@ -1282,11 +1311,14 @@ class _CategoryDetailsPageState extends State<_CategoryDetailsPage> {
                             color: UiTokens.accent,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
+                        SizedBox(
+                          width: double.infinity,
                           child: DropdownButtonFormField<AutomationActionType>(
                             value: nextActionType,
+                            isExpanded: true,
                             items: AutomationActionType.values
                                 .map((a) => DropdownMenuItem(
                                       value: a,
@@ -1301,7 +1333,7 @@ class _CategoryDetailsPageState extends State<_CategoryDetailsPage> {
                                 labelText: 'Тип действия'),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 8),
                         FilledButton.tonalIcon(
                           onPressed: () {
                             final id = DateTime.now()
