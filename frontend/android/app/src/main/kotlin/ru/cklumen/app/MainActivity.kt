@@ -1,4 +1,4 @@
-package com.example.project
+package ru.cklumen.app
 
 import io.flutter.embedding.android.FlutterActivity
 
