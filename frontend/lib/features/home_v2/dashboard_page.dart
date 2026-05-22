@@ -327,8 +327,7 @@ class DashboardPage extends StatelessWidget {
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
                         crossAxisSpacing: 14,
                         mainAxisSpacing: 14,
@@ -369,7 +368,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 }
-
 
 class _AdminOverview extends StatelessWidget {
   const _AdminOverview({
@@ -424,7 +422,8 @@ class _AdminOverview extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _t('Обзор управления', 'Управленилэн учкыны', 'Management overview',
+              _t('Обзор управления', 'Управленилэн учкыны',
+                  'Management overview',
                   tt: 'Идарә күзәтүе', ba: 'Идара күҙәтеүе'),
               style: TextStyle(
                 fontSize: 13,
@@ -444,55 +443,60 @@ class _AdminOverview extends StatelessWidget {
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 900;
             final crossAxisCount = isDesktop ? 4 : 2;
+            const spacing = 10.0;
             final gridWidth = isDesktop
                 ? constraints.maxWidth.clamp(0.0, 780.0)
                 : constraints.maxWidth;
             final cardWidth =
-                (gridWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
-            final cardHeight = isDesktop ? 112.0 : cardWidth / 1.65;
+                (gridWidth - (crossAxisCount - 1) * spacing) / crossAxisCount;
+            final cardHeight = isDesktop ? 112.0 : 178.0;
+            final cards = [
+              _AdminMetricCard(
+                icon: Icons.home_work_outlined,
+                value: projects.length.toString(),
+                label: _t(
+                    'Всего объектов', 'Объектъёс котькуд', 'Total projects',
+                    tt: 'Барлык объектлар', ba: 'Бөтә объекттар'),
+                color: UiTokens.accent,
+              ),
+              _AdminMetricCard(
+                icon: Icons.timelapse_outlined,
+                value: inProgress.toString(),
+                label: _t('В работе', 'Ужын', 'In progress',
+                    tt: 'Эштә', ba: 'Эштә'),
+                color: Colors.blueAccent,
+              ),
+              _AdminMetricCard(
+                icon: Icons.schedule_outlined,
+                value: notStarted.toString(),
+                label: _t(
+                    'Ожидают старта', 'Кутсконэз возьмато', 'Waiting to start',
+                    tt: 'Башлануны көтә', ba: 'Башланыуҙы көтә'),
+                color: Colors.orange,
+              ),
+              _AdminMetricCard(
+                icon: Icons.verified_outlined,
+                value: completed.toString(),
+                label: _t('Завершены', 'Быдтэм', 'Completed',
+                    tt: 'Тәмамланган', ba: 'Тамамланған'),
+                color: Colors.green,
+              ),
+            ];
 
             return Align(
               alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: gridWidth,
-                height: cardHeight * (isDesktop ? 1 : 2) +
-                    (isDesktop ? 0 : 10),
-                child: GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: cardWidth / cardHeight,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: gridWidth),
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
                   children: [
-                    _AdminMetricCard(
-                      icon: Icons.home_work_outlined,
-                      value: projects.length.toString(),
-                      label: _t('Всего объектов', 'Объектъёс котькуд', 'Total projects',
-                          tt: 'Барлык объектлар', ba: 'Бөтә объекттар'),
-                      color: UiTokens.accent,
-                    ),
-                    _AdminMetricCard(
-                      icon: Icons.timelapse_outlined,
-                      value: inProgress.toString(),
-                      label: _t('В работе', 'Ужын', 'In progress',
-                          tt: 'Эштә', ba: 'Эштә'),
-                      color: Colors.blueAccent,
-                    ),
-                    _AdminMetricCard(
-                      icon: Icons.schedule_outlined,
-                      value: notStarted.toString(),
-                      label: _t('Ожидают старта', 'Кутсконэз возьмато', 'Waiting to start',
-                          tt: 'Башлануны көтә', ba: 'Башланыуҙы көтә'),
-                      color: Colors.orange,
-                    ),
-                    _AdminMetricCard(
-                      icon: Icons.verified_outlined,
-                      value: completed.toString(),
-                      label: _t('Завершены', 'Быдтэм', 'Completed',
-                          tt: 'Тәмамланган', ba: 'Тамамланған'),
-                      color: Colors.green,
-                    ),
+                    for (final card in cards)
+                      SizedBox(
+                        width: cardWidth,
+                        height: cardHeight,
+                        child: card,
+                      ),
                   ],
                 ),
               ),
@@ -526,8 +530,8 @@ class _AdminOverview extends StatelessWidget {
         const SizedBox(height: 10),
         _AdminActivityList(
           items: recentActivity,
-          emptyLabel: _t('Пока нет действий', 'Действиос али ӧвӧл',
-              'No activity yet',
+          emptyLabel: _t(
+              'Пока нет действий', 'Действиос али ӧвӧл', 'No activity yet',
               tt: 'Әлегә гамәлләр юк', ba: 'Әлегә ғәмәлдәр юҡ'),
         ),
       ],
@@ -718,9 +722,10 @@ class _AdminMetricCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 20, color: color),
+          const SizedBox(height: 12),
           Text(
             value,
             maxLines: 1,
@@ -731,9 +736,10 @@ class _AdminMetricCard extends StatelessWidget {
               color: UiTokens.foreground(context),
             ),
           ),
+          const SizedBox(height: 12),
           Text(
             label,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 11,

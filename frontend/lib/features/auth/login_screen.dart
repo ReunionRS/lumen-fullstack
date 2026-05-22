@@ -19,8 +19,12 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _passwordFieldKey = GlobalKey();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
 
   bool _rememberEmail = true;
   bool _isSubmitting = false;
@@ -31,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _loadRememberedEmail();
+    _passwordFocusNode.addListener(_scrollPasswordIntoView);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() => _animateIn = true);
@@ -48,9 +53,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.removeListener(_scrollPasswordIntoView);
+    _passwordFocusNode.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _scrollPasswordIntoView() {
+    if (!_passwordFocusNode.hasFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = _passwordFieldKey.currentContext;
+      if (!mounted || context == null) return;
+      await Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: 0.34,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+      );
+    });
   }
 
   Future<void> _submit() async {
@@ -110,7 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text('Отмена'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
               child: const Text('Подтвердить'),
             ),
           ],
@@ -252,6 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(height: isCompactPhone ? 8 : 10),
                       TextFormField(
                         controller: _emailController,
+                        focusNode: _emailFocusNode,
                         keyboardType: TextInputType.emailAddress,
                         style: TextStyle(
                           color: textDark,
@@ -311,7 +337,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: isCompactPhone ? 8 : 10),
                       TextFormField(
+                        key: _passwordFieldKey,
                         controller: _passwordController,
+                        focusNode: _passwordFocusNode,
+                        onTap: _scrollPasswordIntoView,
                         obscureText: _obscurePassword,
                         style: TextStyle(
                           color: textDark,
@@ -467,22 +496,32 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: cardMaxWidth),
-              child: Container(
-                margin: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: panelColor,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    heroPanel,
-                    formPanel,
-                  ],
+          final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+          return SafeArea(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.only(
+                bottom: keyboardInset + 20,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: cardMaxWidth),
+                  child: Container(
+                    margin: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: panelColor,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        heroPanel,
+                        formPanel,
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

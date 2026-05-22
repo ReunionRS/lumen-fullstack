@@ -5,12 +5,12 @@
     <description>App updates for Lumen Group.</description>
     <language>ru</language>
     <item>
-      <title>Version 1.0.3</title>
-      <description>Updated Android application icon.</description>
+      <title>Version 1.0.4</title>
+      <description>Fixes Android dashboard cards and login keyboard scrolling.</description>
       <pubDate>Fri, 22 May 2026 00:00:00 +0400</pubDate>
       <enclosure
-        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.3.apk"
-        sparkle:version="1.0.3"
+        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.4.apk"
+        sparkle:version="1.0.4"
         sparkle:os="android"
         type="application/vnd.android.package-archive" />
     </item>
