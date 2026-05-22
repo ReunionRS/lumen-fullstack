@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:upgrader/upgrader.dart';
 
 import 'core/app_language.dart';
 import 'core/ui_tokens.dart';
@@ -15,11 +16,20 @@ class LumenGroupApp extends StatefulWidget {
 }
 
 class _LumenGroupAppState extends State<LumenGroupApp> {
+  static const _appcastUrl = 'https://app.cklumen.ru/appcast.xml';
   static const _languageKey = 'app_language';
   static const _themeModeKey = 'theme_mode';
   ThemeMode _themeMode = ThemeMode.system;
   AppLanguage _language = AppLanguage.ru;
   bool _bootstrapped = false;
+  late final Upgrader _upgrader = Upgrader(
+    durationUntilAlertAgain: const Duration(hours: 6),
+    storeController: UpgraderStoreController(
+      onAndroid: () => UpgraderAppcastStore(appcastURL: _appcastUrl),
+      oniOS: () => UpgraderAppcastStore(appcastURL: _appcastUrl),
+      onWeb: () => UpgraderAppcastStore(appcastURL: _appcastUrl),
+    ),
+  );
 
   bool get _isDark {
     if (_themeMode == ThemeMode.dark) return true;
@@ -267,6 +277,13 @@ class _LumenGroupAppState extends State<LumenGroupApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => UpgradeAlert(
+        upgrader: _upgrader,
+        showIgnore: false,
+        showLater: false,
+        showReleaseNotes: true,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: AppEntryPoint(
         isDarkMode: _isDark,
         onToggleTheme: _toggleTheme,

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Lumen Group Updates</title>
+    <description>App updates for Lumen Group.</description>
+    <language>ru</language>
+    <item>
+      <title>Version 1.0.1</title>
+      <description>Current stable release.</description>
+      <pubDate>Fri, 22 May 2026 00:00:00 +0400</pubDate>
+      <enclosure
+        url="https://github.com/ReunionRS/lumen-fullstack/releases/latest"
+        sparkle:version="1.0.1"
+        sparkle:os="android"
+        type="application/vnd.android.package-archive" />
+    </item>
+  </channel>
+</rss>

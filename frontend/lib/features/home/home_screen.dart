@@ -10,7 +10,6 @@ import '../../models/project_models.dart';
 import '../../models/session_models.dart';
 import '../../models/system_models.dart';
 import '../../services/auth_service.dart';
-import '../../services/app_update_service.dart';
 import '../../core/constants.dart';
 import '../../core/formatters.dart';
 import '../home_v2/bottom_nav.dart';
@@ -61,8 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedProjectId;
   bool _hasUnreadNotifications = false;
   List<ActivityItem> _recentActivity = const [];
-  final AppUpdateService _appUpdate = AppUpdateService();
-  bool _checkingUpdate = false;
   Timer? _systemsTimer;
   String _systemTemp = '--';
   String _systemHumidity = '--';
@@ -98,9 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: _tabIndex);
     _loadAll();
     _startSystemsPolling();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForUpdates(silentIfNoUpdates: true);
-    });
   }
 
   @override
@@ -281,75 +275,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _checkForUpdates({required bool silentIfNoUpdates}) async {
-    if (_checkingUpdate) return;
-    setState(() => _checkingUpdate = true);
-    try {
-      final info = await _appUpdate.checkForUpdate();
-      if (!mounted) return;
-
-      if (!info.hasUpdate) {
-        if (!silentIfNoUpdates) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_t(
-                'У вас актуальная версия (${info.currentVersion}). Обновлений нет.',
-                'Тынлэн версияед актуальной (${info.currentVersion}). Обновлениеос ӧвӧл.',
-                'You are on the latest version (${info.currentVersion}). No updates found.',
-                tt: 'Сездә актуаль версия (${info.currentVersion}). Яңартулар юк.',
-                ba: 'Һеҙҙә актуаль версия (${info.currentVersion}). Яңыртыуҙар юҡ.',
-              )),
-            ),
-          );
-        }
-        return;
-      }
-
-      final shouldOpen = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text(_t(
-                  'Доступно обновление', 'Обновление вань', 'Update available',
-                  tt: 'Яңарту бар', ba: 'Яңыртыу бар')),
-              content: Text(
-                _t(
-                  'Текущая версия: ${info.currentVersion}\nНовая версия: ${info.latestVersion}\n\nОткрыть страницу скачивания?',
-                  'Быдӟым версия: ${info.currentVersion}\nВыль версия: ${info.latestVersion}\n\nКачать карон бамъёссэ усьтыны?',
-                  'Current version: ${info.currentVersion}\nNew version: ${info.latestVersion}\n\nOpen download page?',
-                  tt: 'Хәзерге версия: ${info.currentVersion}\nЯңа версия: ${info.latestVersion}\n\nЙөкләү битен ачаргамы?',
-                  ba: 'Хәҙерге версия: ${info.currentVersion}\nЯңы версия: ${info.latestVersion}\n\nЙөкләү битен асырғамы?',
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(_t('Позже', 'Берпум', 'Later',
-                      tt: 'Соңрак', ba: 'Һуңыраҡ')),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(_t('Обновить', 'Обновить кароны', 'Update',
-                      tt: 'Яңарту', ba: 'Яңыртырға')),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-
-      if (!shouldOpen || !mounted) return;
-      await widget.auth.openExternal(info.downloadUrl);
-    } catch (e) {
-      if (!mounted || silentIfNoUpdates) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _checkingUpdate = false);
-      }
-    }
-  }
-
   void _showComingSoon(String title) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
@@ -451,11 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onOpenSystems: () => _setTab(2),
           onOpenConstruction: () => _setTab(1),
           onOpenDocuments: () => _setTab(3),
-          onOpenMaintenance: widget.session.role == 'client'
-              ? _openMaintenancePage
-              : () => _showComingSoon(_t(
-                  'Обслуживание', 'Обслуживание', 'Maintenance',
-                  tt: 'Хезмәт күрсәтү', ba: 'Хеҙмәтләндереү')),
+          onOpenMaintenance: _openMaintenancePage,
           onOpenJournal: _openJournalPage,
           onOpenFinances: widget.session.role == 'client'
               ? _openFinancesPage
@@ -1108,10 +1029,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openMaintenancePage() {
-    if (widget.session.role != 'client') {
-      _showComingSoon('Обслуживание');
-      return;
-    }
     ProjectSummary? selected;
     if (_selectedProjectId != null) {
       for (final project in _projects) {
