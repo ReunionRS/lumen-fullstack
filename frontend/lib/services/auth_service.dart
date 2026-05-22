@@ -10,6 +10,7 @@ import '../core/api_config.dart';
 import '../models/project_models.dart';
 import '../models/session_models.dart';
 import '../models/notification_models.dart';
+import '../models/activity_models.dart';
 import '../models/support_models.dart';
 import '../models/user_models.dart';
 import '../models/finance_models.dart';
@@ -1045,6 +1046,30 @@ class AuthService {
     return decoded
         .whereType<Map<String, dynamic>>()
         .map(AppNotification.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<List<ActivityItem>> fetchActivity({int limit = 8}) async {
+    final headers = await _authHeaders();
+    final safeLimit = limit.clamp(1, 30);
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/activity')
+        .replace(queryParameters: {'limit': safeLimit.toString()});
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 401) throw const UnauthorizedException();
+    if (response.statusCode == 403 || response.statusCode == 404) {
+      return const <ActivityItem>[];
+    }
+    if (response.statusCode != 200) {
+      throw Exception(_extractError(response.body,
+          fallback: 'Не удалось загрузить активность'));
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) return const <ActivityItem>[];
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map(ActivityItem.fromJson)
         .toList(growable: false);
   }
 

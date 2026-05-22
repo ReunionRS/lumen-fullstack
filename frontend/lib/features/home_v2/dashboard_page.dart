@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
 import '../../core/ui_tokens.dart';
+import '../../models/activity_models.dart';
 import '../../models/project_models.dart';
 import 'house_card.dart';
 import 'quick_action.dart';
@@ -26,6 +27,7 @@ class DashboardPage extends StatelessWidget {
     required this.onOpenSupport,
     required this.onOpenAdminPanel,
     required this.hasUnreadNotifications,
+    required this.recentActivity,
     required this.resolveFileUrl,
     required this.language,
     this.systemStatusOk = true,
@@ -51,6 +53,7 @@ class DashboardPage extends StatelessWidget {
   final VoidCallback onOpenSupport;
   final VoidCallback onOpenAdminPanel;
   final bool hasUnreadNotifications;
+  final List<ActivityItem> recentActivity;
   final String Function(String) resolveFileUrl;
   final AppLanguage language;
   final bool systemStatusOk;
@@ -269,6 +272,7 @@ class DashboardPage extends StatelessWidget {
               onCreateProject: onCreateProject,
               onOpenAdminPanel: onOpenAdminPanel,
               language: language,
+              recentActivity: recentActivity,
             ),
           if (!isAdmin)
             Row(
@@ -373,12 +377,14 @@ class _AdminOverview extends StatelessWidget {
     required this.onCreateProject,
     required this.onOpenAdminPanel,
     required this.language,
+    required this.recentActivity,
   });
 
   final List<ProjectSummary> projects;
   final VoidCallback onCreateProject;
   final VoidCallback onOpenAdminPanel;
   final AppLanguage language;
+  final List<ActivityItem> recentActivity;
 
   String _t(
     String ru,
@@ -507,8 +513,184 @@ class _AdminOverview extends StatelessWidget {
           ),
           onTap: onOpenAdminPanel,
         ),
+        const SizedBox(height: 22),
+        Text(
+          _t('Активность', 'Активность', 'Activity',
+              tt: 'Активлык', ba: 'Әүҙемлек'),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: UiTokens.foreground(context),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _AdminActivityList(
+          items: recentActivity,
+          emptyLabel: _t('Пока нет действий', 'Действиос али ӧвӧл',
+              'No activity yet',
+              tt: 'Әлегә гамәлләр юк', ba: 'Әлегә ғәмәлдәр юҡ'),
+        ),
       ],
     );
+  }
+}
+
+class _AdminActivityList extends StatelessWidget {
+  const _AdminActivityList({
+    required this.items,
+    required this.emptyLabel,
+  });
+
+  final List<ActivityItem> items;
+  final String emptyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        decoration: BoxDecoration(
+          color: UiTokens.card(context),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: UiTokens.cardShadow(context),
+        ),
+        child: Text(
+          emptyLabel,
+          style: TextStyle(color: UiTokens.muted(context), fontSize: 13),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: UiTokens.card(context),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: UiTokens.cardShadow(context),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i += 1) ...[
+            _AdminActivityTile(item: items[i]),
+            if (i != items.length - 1)
+              Divider(height: 1, color: UiTokens.border(context)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminActivityTile extends StatelessWidget {
+  const _AdminActivityTile({required this.item});
+
+  final ActivityItem item;
+
+  IconData get _icon {
+    switch (item.type) {
+      case 'document_uploaded':
+        return Icons.description_outlined;
+      case 'project_created':
+        return Icons.home_work_outlined;
+      case 'maintenance_request':
+        return Icons.assignment_outlined;
+      case 'maintenance_task':
+        return Icons.fact_check_outlined;
+      case 'support_message':
+        return Icons.support_agent;
+      case 'journal_entry':
+        return Icons.book_outlined;
+      default:
+        return Icons.notifications_none;
+    }
+  }
+
+  Color _iconColor(BuildContext context) {
+    switch (item.type) {
+      case 'maintenance_task':
+        return Colors.green;
+      case 'maintenance_request':
+        return Colors.orange;
+      case 'support_message':
+        return Colors.blueAccent;
+      default:
+        return UiTokens.accent;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = item.title.trim().isEmpty ? 'Активность' : item.title.trim();
+    final body = item.body.trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: _iconColor(context).withOpacity(0.13),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(_icon, size: 18, color: _iconColor(context)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: UiTokens.foreground(context),
+                  ),
+                ),
+                if (body.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: UiTokens.muted(context),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            _formatActivityTime(item.createdAt),
+            style: TextStyle(
+              fontSize: 10,
+              color: UiTokens.muted(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatActivityTime(String raw) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return '';
+    final local = parsed.toLocal();
+    final now = DateTime.now();
+    final diff = now.difference(local);
+    if (diff.inMinutes < 1) return 'сейчас';
+    if (diff.inHours < 1) return '${diff.inMinutes} мин';
+    if (diff.inDays < 1) return '${diff.inHours} ч';
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    return '$day.$month';
   }
 }
 

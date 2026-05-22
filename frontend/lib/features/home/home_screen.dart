@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
+import '../../models/activity_models.dart';
 import '../../models/project_models.dart';
 import '../../models/session_models.dart';
 import '../../models/system_models.dart';
@@ -59,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
   String? _selectedProjectId;
   bool _hasUnreadNotifications = false;
+  List<ActivityItem> _recentActivity = const [];
   final AppUpdateService _appUpdate = AppUpdateService();
   bool _checkingUpdate = false;
   Timer? _systemsTimer;
@@ -127,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadAll() async {
     await _loadProjects();
     await _loadNotificationBadge();
+    await _loadRecentActivity();
     await _loadDashboardSystems();
   }
 
@@ -173,6 +176,21 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _hasUnreadNotifications = false);
+    }
+  }
+
+  Future<void> _loadRecentActivity() async {
+    if (widget.session.role != 'admin') return;
+    try {
+      final items = await widget.auth.fetchActivity(limit: 6);
+      if (!mounted) return;
+      setState(() => _recentActivity = items);
+    } on UnauthorizedException {
+      if (!mounted) return;
+      setState(() => _recentActivity = const []);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _recentActivity = const []);
     }
   }
 
@@ -446,6 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onOpenSupport: _openSupportChat,
           onOpenAdminPanel: _openAdminPanel,
           hasUnreadNotifications: _hasUnreadNotifications,
+          recentActivity: _recentActivity,
           resolveFileUrl: widget.auth.resolveFileUrl,
           language: widget.language,
           systemStatusOk: _systemStatusOk,

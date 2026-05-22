@@ -1439,6 +1439,116 @@ app.post('/api/push/test', authRequired, async (req, res) => {
   }
 });
 
+app.get('/api/activity', authRequired, roleRequired('admin', 'director', 'manager'), async (req, res) => {
+  try {
+    const rawLimit = Number(req.query.limit || 8);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(Math.floor(rawLimit), 1), 30)
+      : 8;
+    const { rows } = await pool.query(
+      `
+      SELECT * FROM (
+        SELECT
+          'project_created' AS type,
+          id,
+          id AS project_id,
+          client_user_id,
+          'Добавлен новый объект' AS title,
+          construction_address AS body,
+          created_at AS created_at
+        FROM projects
+
+        UNION ALL
+
+        SELECT
+          'document_uploaded' AS type,
+          id,
+          project_id,
+          client_user_id,
+          'Добавлен новый документ' AS title,
+          name AS body,
+          uploaded_at AS created_at
+        FROM documents
+
+        UNION ALL
+
+        SELECT
+          'maintenance_request' AS type,
+          id,
+          project_id,
+          client_user_id,
+          CASE
+            WHEN status IN ('completed', 'done') THEN 'Заявка выполнена'
+            ELSE 'Новая заявка'
+          END AS title,
+          COALESCE(NULLIF(description, ''), NULLIF(system_type, ''), 'Заявка на обслуживание') AS body,
+          updated_at AS created_at
+        FROM maintenance_requests
+
+        UNION ALL
+
+        SELECT
+          'maintenance_task' AS type,
+          t.id,
+          t.project_id,
+          p.client_user_id,
+          CASE
+            WHEN t.status IN ('completed', 'done') THEN 'Обслуживание выполнено'
+            ELSE 'Запланировано обслуживание'
+          END AS title,
+          t.title AS body,
+          COALESCE(t.completed_at, t.created_at) AS created_at
+        FROM maintenance_tasks t
+        LEFT JOIN projects p ON p.id = t.project_id
+
+        UNION ALL
+
+        SELECT
+          'support_message' AS type,
+          m.id,
+          '' AS project_id,
+          m.client_user_id,
+          'Сообщение в поддержке' AS title,
+          m.message_text AS body,
+          m.created_at AS created_at
+        FROM support_messages m
+
+        UNION ALL
+
+        SELECT
+          'journal_entry' AS type,
+          j.id,
+          j.project_id,
+          p.client_user_id,
+          'Запись в журнале' AS title,
+          j.description AS body,
+          j.created_at AS created_at
+        FROM journal_entries j
+        LEFT JOIN projects p ON p.id = j.project_id
+      ) activity
+      ORDER BY created_at DESC
+      LIMIT $1
+      `,
+      [limit]
+    );
+
+    res.json(
+      rows.map((row) => ({
+        id: `${row.type}-${row.id}`,
+        type: row.type,
+        title: row.title || 'Активность',
+        body: row.body || '',
+        createdAt: row.created_at,
+        projectId: row.project_id || '',
+        clientUserId: row.client_user_id || '',
+      }))
+    );
+  } catch (error) {
+    console.error('Activity feed failed:', error);
+    res.status(500).json({ error: 'Не удалось загрузить активность' });
+  }
+});
+
 app.get('/api/users', authRequired, async (req, res) => {
   const { rows } = await pool.query(
     'SELECT id, email, fio, role, is_active, is_archived, avatar_url FROM users ORDER BY created_at DESC'
