@@ -85,7 +85,7 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = role == 'admin';
+    final isAdmin = role == 'admin' || role == 'director';
     return Container(
       color: UiTokens.background(context),
       child: ListView(

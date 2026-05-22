@@ -68,6 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _systemStatusOk = true;
   late final PageController _pageController;
 
+  bool get _hasAdminAccess =>
+      widget.session.role == 'admin' || widget.session.role == 'director';
+
   String _t(
     String ru,
     String udm,
@@ -174,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadRecentActivity() async {
-    if (widget.session.role != 'admin') return;
+    if (!_hasAdminAccess) return;
     try {
       final items = await widget.auth.fetchActivity(limit: 6);
       if (!mounted) return;
@@ -806,7 +809,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCreateUserSheet() {
-    if (widget.session.role != 'admin') return;
+    if (!_hasAdminAccess) return;
     final fioController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
@@ -1077,7 +1080,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openAdminPanel() {
-    if (widget.session.role != 'admin') {
+    if (!_hasAdminAccess) {
       _showComingSoon('Админ панель');
       return;
     }

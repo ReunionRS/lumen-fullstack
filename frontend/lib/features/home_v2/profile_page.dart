@@ -221,7 +221,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 18),
-          if (widget.session.role == 'admin') ...[
+          if (widget.session.role == 'admin' ||
+              widget.session.role == 'director') ...[
             _ProfileTile(
               icon: Icons.admin_panel_settings_outlined,
               title: I18n.t('Админ панель', 'Админ панель', 'Admin panel', tt: 'Админ панеле', ba: 'Админ панеле'),

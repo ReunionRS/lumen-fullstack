@@ -2124,7 +2124,7 @@ app.get('/api/maintenance/tasks', authRequired, async (req, res) => {
   }
 });
 
-app.post('/api/maintenance/tasks', authRequired, roleRequired('admin'), async (req, res) => {
+app.post('/api/maintenance/tasks', authRequired, roleRequired('admin', 'director'), async (req, res) => {
   try {
     const projectId = String(req.body.projectId || '').trim();
     const title = String(req.body.title || '').trim();
@@ -2177,7 +2177,7 @@ app.post('/api/maintenance/tasks', authRequired, roleRequired('admin'), async (r
   }
 });
 
-app.patch('/api/maintenance/tasks/:id', authRequired, roleRequired('admin'), async (req, res) => {
+app.patch('/api/maintenance/tasks/:id', authRequired, roleRequired('admin', 'director'), async (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     const title = req.body.title != null ? String(req.body.title || '').trim() : null;
@@ -2262,7 +2262,7 @@ app.patch('/api/maintenance/tasks/:id', authRequired, roleRequired('admin'), asy
   }
 });
 
-app.delete('/api/maintenance/tasks/:id', authRequired, roleRequired('admin'), async (req, res) => {
+app.delete('/api/maintenance/tasks/:id', authRequired, roleRequired('admin', 'director'), async (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'id обязателен' });
@@ -2368,7 +2368,7 @@ app.post('/api/journal/entries', authRequired, async (req, res) => {
   }
 });
 
-app.get('/api/maintenance/requests', authRequired, roleRequired('admin'), async (req, res) => {
+app.get('/api/maintenance/requests', authRequired, roleRequired('admin', 'director'), async (req, res) => {
   try {
     const projectId = String(req.query.projectId || '').trim() || null;
     const clientUserId = String(req.query.clientUserId || '').trim() || null;
@@ -2462,7 +2462,7 @@ app.post('/api/maintenance/requests', authRequired, async (req, res) => {
   }
 });
 
-app.patch('/api/maintenance/requests/:id', authRequired, roleRequired('admin'), async (req, res) => {
+app.patch('/api/maintenance/requests/:id', authRequired, roleRequired('admin', 'director'), async (req, res) => {
   try {
     const id = String(req.params.id || '').trim();
     const status = req.body.status != null ? String(req.body.status || '').trim() : null;
@@ -3138,7 +3138,7 @@ app.patch('/api/notifications/maintenance-requests/:id/read', authRequired, asyn
   const { rows } = await pool.query('SELECT * FROM maintenance_requests WHERE id = $1 LIMIT 1', [id]);
   if (!rows.length) return res.status(404).json({ error: 'Уведомление не найдено' });
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'director') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

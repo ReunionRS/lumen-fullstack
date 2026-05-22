@@ -125,7 +125,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
 
     if (item.type == 'maintenance_request') {
-      if (widget.role != 'admin') return;
+      if (widget.role != 'admin' && widget.role != 'director') return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => MaintenanceRequestsPage(auth: widget.auth),
