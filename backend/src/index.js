@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import { authenticator } from 'otplib';
 import mammoth from 'mammoth';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,11 +46,143 @@ const {
   HA_WEB_APP_URL = '',
   HA_WEB_REDIRECT_URIS = '',
   DEV_ALLOW_ALL_CORS = '',
+  MAIL_ENABLED = 'false',
+  MAIL_TRANSPORT = 'smtp',
+  MAIL_FROM = 'Lumen Group <no-reply@cklumen.ru>',
+  MAIL_REPLY_TO = '',
+  MAIL_SENDMAIL_PATH = '/usr/sbin/sendmail',
+  SMTP_HOST = '',
+  SMTP_PORT = '587',
+  SMTP_SECURE = 'false',
+  SMTP_USER = '',
+  SMTP_PASS = '',
+  SMTP_REJECT_UNAUTHORIZED = 'true',
+  APP_PUBLIC_URL = 'https://app.cklumen.ru',
 } = process.env;
 
 const pool = new Pool({ connectionString: DATABASE_URL });
 
-const sendUserWelcomeEmail = async () => false;
+const mailEnabled = String(MAIL_ENABLED || '').toLowerCase() === 'true';
+let mailTransporter = null;
+
+const htmlEscape = (value) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const userRoleLabel = (role) => {
+  switch (String(role || '').toLowerCase()) {
+    case 'admin':
+      return 'Администратор';
+    case 'director':
+      return 'Руководитель';
+    case 'manager':
+      return 'Менеджер';
+    case 'foreman':
+      return 'Прораб';
+    case 'client':
+      return 'Клиент';
+    default:
+      return role || 'Пользователь';
+  }
+};
+
+const getMailTransporter = () => {
+  if (!mailEnabled) return null;
+  if (mailTransporter) return mailTransporter;
+
+  if (String(MAIL_TRANSPORT || '').toLowerCase() === 'sendmail') {
+    mailTransporter = nodemailer.createTransport({
+      sendmail: true,
+      newline: 'unix',
+      path: MAIL_SENDMAIL_PATH || '/usr/sbin/sendmail',
+    });
+    return mailTransporter;
+  }
+
+  if (!SMTP_HOST) {
+    console.warn('MAIL_ENABLED=true, but SMTP_HOST is empty. Welcome emails are disabled.');
+    return null;
+  }
+
+  const auth =
+    SMTP_USER && SMTP_PASS
+      ? {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        }
+      : undefined;
+
+  mailTransporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT || 587),
+    secure: String(SMTP_SECURE || '').toLowerCase() === 'true',
+    auth,
+    tls: {
+      rejectUnauthorized:
+        String(SMTP_REJECT_UNAUTHORIZED || '').toLowerCase() !== 'false',
+    },
+  });
+  return mailTransporter;
+};
+
+const buildWelcomeEmail = ({ fio, email, password, role }) => {
+  const roleLabel = userRoleLabel(role);
+  const safeFio = htmlEscape(fio || 'Пользователь');
+  const safeEmail = htmlEscape(email);
+  const safePassword = htmlEscape(password);
+  const safeRole = htmlEscape(roleLabel);
+  const safeUrl = htmlEscape(APP_PUBLIC_URL);
+
+  const text = [
+    `Здравствуйте, ${fio || 'Пользователь'}!`,
+    '',
+    'Для вас создан аккаунт в Lumen Group.',
+    '',
+    `Ссылка: ${APP_PUBLIC_URL}`,
+    `Email: ${email}`,
+    `Пароль: ${password}`,
+    `Роль: ${roleLabel}`,
+    '',
+    'После первого входа рекомендуем сменить пароль в профиле.',
+  ].join('\n');
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
+      <h2 style="margin:0 0 12px">Добро пожаловать в Lumen Group</h2>
+      <p>Здравствуйте, <b>${safeFio}</b>!</p>
+      <p>Для вас создан аккаунт в системе Lumen Group.</p>
+      <table style="border-collapse:collapse;margin:16px 0">
+        <tr><td style="padding:6px 12px 6px 0;color:#6b7280">Ссылка</td><td style="padding:6px 0"><a href="${safeUrl}">${safeUrl}</a></td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#6b7280">Email</td><td style="padding:6px 0"><b>${safeEmail}</b></td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#6b7280">Пароль</td><td style="padding:6px 0"><b>${safePassword}</b></td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#6b7280">Роль</td><td style="padding:6px 0">${safeRole}</td></tr>
+      </table>
+      <p style="color:#6b7280">После первого входа рекомендуем сменить пароль в профиле.</p>
+    </div>
+  `;
+
+  return { text, html };
+};
+
+const sendUserWelcomeEmail = async ({ fio, email, password, role }) => {
+  const transporter = getMailTransporter();
+  if (!transporter) return false;
+
+  const { text, html } = buildWelcomeEmail({ fio, email, password, role });
+  await transporter.sendMail({
+    from: MAIL_FROM,
+    to: email,
+    replyTo: MAIL_REPLY_TO || undefined,
+    subject: 'Доступ к Lumen Group',
+    text,
+    html,
+  });
+  return true;
+};
 
 const app = express();
 const extraAllowedOrigins = [
@@ -997,6 +1130,39 @@ const bootstrap = async () => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get('/api/mail/status', authRequired, roleRequired('admin', 'director'), (_req, res) => {
+  res.json({
+    enabled: mailEnabled,
+    transport: MAIL_TRANSPORT,
+    from: MAIL_FROM,
+    smtpHost: SMTP_HOST || null,
+    sendmailPath:
+      String(MAIL_TRANSPORT || '').toLowerCase() === 'sendmail'
+        ? MAIL_SENDMAIL_PATH
+        : null,
+  });
+});
+
+app.post('/api/mail/test', authRequired, roleRequired('admin', 'director'), async (req, res) => {
+  try {
+    const email = String(req.body.email || req.user.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'email обязателен' });
+    const sent = await sendUserWelcomeEmail({
+      fio: req.user.fio || 'Пользователь',
+      email,
+      password: 'test-password',
+      role: req.user.role,
+    });
+    if (!sent) {
+      return res.status(503).json({ error: 'Почта не настроена' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.warn('Failed to send test email:', error?.message || error);
+    res.status(500).json({ error: 'Не удалось отправить тестовое письмо' });
+  }
 });
 
 app.get('/api/home-assistant/connection', authRequired, async (req, res) => {

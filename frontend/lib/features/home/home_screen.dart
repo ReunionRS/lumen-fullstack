@@ -897,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     email: emailController.text.trim(),
                                     password: passwordController.text,
                                     role: role,
-                                    sendWelcomeEmail: false,
+                                    sendWelcomeEmail: true,
                                   );
                                   if (!mounted) return;
                                   if (context.mounted) {
