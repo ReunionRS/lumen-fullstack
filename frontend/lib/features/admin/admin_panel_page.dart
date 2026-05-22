@@ -12,6 +12,7 @@ import '../home_v2/finances_page.dart';
 import '../home_v2/journal_page.dart';
 import '../home_v2/maintenance_page.dart';
 import '../home_v2/maintenance_requests_page.dart';
+import '../home_v2/support_chat_page.dart';
 
 class AdminPanelPage extends StatelessWidget {
   const AdminPanelPage({super.key, required this.auth});
@@ -83,6 +84,22 @@ class AdminPanelPage extends StatelessWidget {
               context,
               title: I18n.t('Заявки', 'Заявкаос', 'Requests'),
               child: MaintenanceRequestsPage(auth: auth),
+              hideAppBar: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _AdminTile(
+            icon: Icons.support_agent,
+            title: I18n.t('Поддержка', 'Поддержка', 'Support',
+                tt: 'Ярдәм', ba: 'Ярҙәм'),
+            onTap: () => _openSection(
+              context,
+              title: I18n.t('Поддержка', 'Поддержка', 'Support',
+                  tt: 'Ярдәм', ba: 'Ярҙәм'),
+              child: SupportPage(
+                auth: auth,
+                role: 'admin',
+              ),
               hideAppBar: true,
             ),
           ),
