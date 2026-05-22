@@ -19,6 +19,7 @@ class _LumenGroupAppState extends State<LumenGroupApp> {
   static const _appcastUrl = 'https://app.cklumen.ru/appcast.xml';
   static const _languageKey = 'app_language';
   static const _themeModeKey = 'theme_mode';
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   ThemeMode _themeMode = ThemeMode.system;
   AppLanguage _language = AppLanguage.ru;
   bool _bootstrapped = false;
@@ -262,6 +263,7 @@ class _LumenGroupAppState extends State<LumenGroupApp> {
     }
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Lumen Group',
       theme: _buildLightTheme(),
@@ -279,6 +281,7 @@ class _LumenGroupAppState extends State<LumenGroupApp> {
       ],
       builder: (context, child) => UpgradeAlert(
         upgrader: _upgrader,
+        navigatorKey: _navigatorKey,
         showIgnore: false,
         showLater: false,
         showReleaseNotes: true,
