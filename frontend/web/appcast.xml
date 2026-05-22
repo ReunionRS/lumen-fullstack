@@ -5,12 +5,12 @@
     <description>App updates for Lumen Group.</description>
     <language>ru</language>
     <item>
-      <title>Version 1.0.5</title>
-      <description>Fixes in-app update dialog display.</description>
+      <title>Version 1.0.6</title>
+      <description>Adds welcome email delivery when creating users.</description>
       <pubDate>Fri, 22 May 2026 00:00:00 +0400</pubDate>
       <enclosure
-        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.5.apk"
-        sparkle:version="1.0.5"
+        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.6.apk"
+        sparkle:version="1.0.6"
         sparkle:os="android"
         type="application/vnd.android.package-archive" />
     </item>
