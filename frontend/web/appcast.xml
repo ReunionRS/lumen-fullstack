@@ -5,12 +5,12 @@
     <description>App updates for Lumen Group.</description>
     <language>ru</language>
     <item>
-      <title>Version 1.0.2</title>
-      <description>Director admin access and app update support.</description>
+      <title>Version 1.0.3</title>
+      <description>Updated Android application icon.</description>
       <pubDate>Fri, 22 May 2026 00:00:00 +0400</pubDate>
       <enclosure
-        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.2.apk"
-        sparkle:version="1.0.2"
+        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.3.apk"
+        sparkle:version="1.0.3"
         sparkle:os="android"
         type="application/vnd.android.package-archive" />
     </item>
