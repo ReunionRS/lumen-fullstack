@@ -5,12 +5,12 @@
     <description>App updates for Lumen Group.</description>
     <language>ru</language>
     <item>
-      <title>Version 1.0.6</title>
-      <description>Adds welcome email delivery when creating users.</description>
+      <title>Version 1.0.7</title>
+      <description>RuStore release build.</description>
       <pubDate>Fri, 22 May 2026 00:00:00 +0400</pubDate>
       <enclosure
-        url="https://app.cklumen.ru/downloads/lumen-group-v1.0.6.apk"
-        sparkle:version="1.0.6"
+        url="https://www.rustore.ru/catalog/app/ru.cklumen.app"
+        sparkle:version="1.0.7"
         sparkle:os="android"
         type="application/vnd.android.package-archive" />
     </item>
