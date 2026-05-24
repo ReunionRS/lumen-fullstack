@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_language.dart';
 import '../../models/activity_models.dart';
+import '../../models/house_catalog.dart';
 import '../../models/project_models.dart';
 import '../../models/session_models.dart';
 import '../../models/system_models.dart';
@@ -437,6 +438,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final phoneController = TextEditingController();
     final emailController = TextEditingController();
     final areaController = TextEditingController();
+    final floorsController = TextEditingController();
+    final estimatedCostController = TextEditingController();
     final typeController = TextEditingController();
     final materialsController = TextEditingController();
     final canBindClient = widget.session.role != 'client';
@@ -444,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
     bool loadingClients = false;
     String? clientError;
     String? clientUserId;
+    String? catalogHouseId;
     DateTime? startDate;
     DateTime? endDate;
     bool saving = false;
@@ -587,6 +591,90 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: const InputDecoration(labelText: 'Email'),
                       ),
                       const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: catalogHouseId,
+                        isExpanded: true,
+                        selectedItemBuilder: (context) {
+                          return [
+                            const Text(
+                              'Не выбран',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            ...houseCatalogItems.map(
+                              (item) => Text(
+                                item.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ];
+                        },
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('Не выбран'),
+                          ),
+                          ...houseCatalogItems.map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item.id,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    item.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    '${item.category} · ${item.floors} эт. · ${_formatRub(item.priceRub)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: saving
+                            ? null
+                            : (value) {
+                                HouseCatalogItem? selected;
+                                for (final item in houseCatalogItems) {
+                                  if (item.id == value) {
+                                    selected = item;
+                                    break;
+                                  }
+                                }
+                                setModalState(() {
+                                  catalogHouseId = value;
+                                  if (selected != null) {
+                                    areaController.text =
+                                        selected.areaSqm.toStringAsFixed(0);
+                                    floorsController.text =
+                                        selected.floors.toString();
+                                    estimatedCostController.text =
+                                        selected.priceRub.toStringAsFixed(0);
+                                    typeController.text = selected.category;
+                                    materialsController.text =
+                                        selected.materials;
+                                  }
+                                });
+                              },
+                        decoration: const InputDecoration(
+                          labelText: 'Проект из каталога',
+                          helperText: 'Необязательно',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: addressController,
                         decoration: const InputDecoration(labelText: 'Адрес'),
@@ -680,6 +768,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        controller: floorsController,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            const InputDecoration(labelText: 'Этажность'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: estimatedCostController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                            labelText: 'Ориентировочная стоимость, ₽'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
                         controller: typeController,
                         decoration: const InputDecoration(labelText: 'Тип'),
                       ),
@@ -729,6 +831,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 if (!context.mounted) return;
                                 setModalState(() => saving = true);
                                 try {
+                                  HouseCatalogItem? selectedCatalog;
+                                  for (final item in houseCatalogItems) {
+                                    if (item.id == catalogHouseId) {
+                                      selectedCatalog = item;
+                                      break;
+                                    }
+                                  }
                                   final created =
                                       await widget.auth.createProject({
                                     'clientFio': fioController.text.trim(),
@@ -740,9 +849,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'areaSqm': num.tryParse(
                                             areaController.text.trim()) ??
                                         0,
+                                    'floors': int.tryParse(
+                                            floorsController.text.trim()) ??
+                                        0,
+                                    'estimatedCost': num.tryParse(
+                                            estimatedCostController.text
+                                                .trim()) ??
+                                        0,
                                     'projectType': typeController.text.trim(),
                                     'materials':
                                         materialsController.text.trim(),
+                                    'catalogHouseId': catalogHouseId,
+                                    'catalogHouseName': selectedCatalog?.name,
+                                    'catalogHouseUrl': selectedCatalog?.url,
                                     'status': 'in_progress',
                                     'startDate': _formatIsoDate(startDate),
                                     'plannedEndDate': _formatIsoDate(endDate),
@@ -959,6 +1078,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+
+  String _formatRub(num value) {
+    final digits = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i += 1) {
+      final left = digits.length - i;
+      buffer.write(digits[i]);
+      if (left > 1 && left % 3 == 1) {
+        buffer.write(' ');
+      }
+    }
+    return '${buffer.toString()} ₽';
   }
 
   void _openProfilePage() {

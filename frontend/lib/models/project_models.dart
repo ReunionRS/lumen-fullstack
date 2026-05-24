@@ -9,6 +9,9 @@ class ProjectSummary {
     required this.startDate,
     required this.plannedEndDate,
     required this.progress,
+    this.catalogHouseId = '',
+    this.catalogHouseName = '',
+    this.catalogHouseUrl = '',
   });
 
   final String id;
@@ -20,6 +23,9 @@ class ProjectSummary {
   final String startDate;
   final String plannedEndDate;
   final int progress;
+  final String catalogHouseId;
+  final String catalogHouseName;
+  final String catalogHouseUrl;
 
   static ProjectSummary fromJson(Map<String, dynamic> json) {
     final stages = (json['stages'] as List<dynamic>? ?? const <dynamic>[])
@@ -41,6 +47,9 @@ class ProjectSummary {
       startDate: (json['startDate'] ?? '').toString(),
       plannedEndDate: (json['plannedEndDate'] ?? '').toString(),
       progress: total == 0 ? 0 : ((done / total) * 100).round(),
+      catalogHouseId: (json['catalogHouseId'] ?? '').toString(),
+      catalogHouseName: (json['catalogHouseName'] ?? '').toString(),
+      catalogHouseUrl: (json['catalogHouseUrl'] ?? '').toString(),
     );
   }
 }
@@ -143,6 +152,9 @@ class ProjectDetails {
     required this.cameraUrl,
     required this.clientUserId,
     required this.stages,
+    this.catalogHouseId = '',
+    this.catalogHouseName = '',
+    this.catalogHouseUrl = '',
   });
 
   final String id;
@@ -167,6 +179,9 @@ class ProjectDetails {
   final String cameraUrl;
   final String clientUserId;
   final List<ProjectStage> stages;
+  final String catalogHouseId;
+  final String catalogHouseName;
+  final String catalogHouseUrl;
 
   static ProjectDetails fromJson(Map<String, dynamic> json) {
     final rawStages = (json['stages'] as List<dynamic>? ?? const <dynamic>[])
@@ -195,6 +210,9 @@ class ProjectDetails {
       lastPaymentDate: (json['lastPaymentDate'] ?? '').toString(),
       cameraUrl: (json['cameraUrl'] ?? '').toString(),
       clientUserId: (json['clientUserId'] ?? '').toString(),
+      catalogHouseId: (json['catalogHouseId'] ?? '').toString(),
+      catalogHouseName: (json['catalogHouseName'] ?? '').toString(),
+      catalogHouseUrl: (json['catalogHouseUrl'] ?? '').toString(),
       stages: List.generate(
           rawStages.length, (i) => ProjectStage.fromJson(rawStages[i], i)),
     );
@@ -233,6 +251,9 @@ class ProjectDetails {
       'plannedEndDate': plannedEndDate,
       'actualEndDate': actualEndDate,
       'cameraUrl': cameraUrl,
+      'catalogHouseId': catalogHouseId.isEmpty ? null : catalogHouseId,
+      'catalogHouseName': catalogHouseName.isEmpty ? null : catalogHouseName,
+      'catalogHouseUrl': catalogHouseUrl.isEmpty ? null : catalogHouseUrl,
       'contractAmount': contractAmountOverride ?? contractAmount,
       'paidAmount': paidAmountOverride ?? paidAmount,
       'nextPaymentDate': nextPaymentDateOverride ?? nextPaymentDate,

@@ -22,9 +22,13 @@ CREATE TABLE IF NOT EXISTS projects (
   construction_address TEXT NOT NULL,
   thumbnail_url TEXT,
   materials TEXT,
+  floors INTEGER NOT NULL DEFAULT 0,
   project_type TEXT NOT NULL,
   area_sqm DOUBLE PRECISION NOT NULL DEFAULT 0,
   estimated_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+  catalog_house_id TEXT,
+  catalog_house_name TEXT,
+  catalog_house_url TEXT,
   contract_amount DOUBLE PRECISION,
   paid_amount DOUBLE PRECISION,
   next_payment_date TEXT,
@@ -191,6 +195,10 @@ ALTER TABLE documents ADD COLUMN IF NOT EXISTS client_user_id TEXT REFERENCES us
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_phone TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS materials TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS floors INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS catalog_house_id TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS catalog_house_name TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS catalog_house_url TEXT;
 ALTER TABLE support_messages ADD COLUMN IF NOT EXISTS is_read_by_admin BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE stage_comment_notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
